@@ -69,23 +69,6 @@ const App = () => {
     setDevices([...devices])
   }
 
-  const sendHello = () => {
-    getConnectionInfo()
-    .then (() => {
-      sendMessage('Hello from React Native!')
-      .then(() => {
-        // must wait for controller to reset socket
-        setTimeout(() => {
-          receiveMessage()
-          .then(result => setMessage(result.message))
-          .catch(err => setStatus(`receiveMessage Error: ${err}`))
-        }, 500)
-      })
-    .catch(err => setStatus(`sendMessage Error: ${err}`))
-    })
-    
-  }
-
   const sendCommand = () => {
     const commandObj = {
       command: "message",
@@ -94,7 +77,7 @@ const App = () => {
 
     getConnectionInfo().then( () => {
       sendMessage(JSON.stringify(commandObj)).then( () => {
-        setTimeout( () => {
+        setTimeout( () => { // must wait for controller to reset socket
           receiveMessage().then( result => {
             setMessage(result.message)
           })
