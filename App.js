@@ -7,6 +7,7 @@ import {
   initialize,
   receiveMessage,
   removeGroup,
+  sendFile,
   sendMessage,
   startDiscoveringPeers,
   subscribeOnPeersUpdates,
@@ -20,10 +21,13 @@ import {
   View,
 } from 'react-native';
 
-import {
-  Colors,
-} from 'react-native/Libraries/NewAppScreen';
 import Device from './Device';
+
+import { Colors } from 'react-native/Libraries/NewAppScreen';
+
+import DocumentPicker from 'react-native-document-picker'
+
+import RNFetchBlob from 'rn-fetch-blob'
 
 /*
     APP COMPONENT
@@ -34,6 +38,8 @@ const App = () => {
   const [status, setStatus] = useState("status")
 
   const [message, setMessage] = useState("message")
+  const [path, setPath] = useState("path")
+  const [fname, setFname] = useState("fileName")
 
   // Make sure location permission is granted
   useEffect(async () => {
@@ -71,8 +77,8 @@ const App = () => {
 
   const sendCommand = () => {
     const commandObj = {
-      command: "message",
-      message: "Hello from React-Native..."
+      command: "test message",
+      message: "Testing, testing, 1 2 3"
     }
 
     getConnectionInfo().then( () => {
@@ -80,6 +86,47 @@ const App = () => {
         setTimeout( () => { // must wait for controller to reset socket
           receiveMessage().then( result => {
             setMessage(result.message)
+          })
+        }, 1000)
+      })
+    })
+  }
+
+  const selectFile = async () => {
+    try {
+      const res = await DocumentPicker.pick({
+        type: ["application/x-pem-file"]
+      })
+      setFname(res[0].name)
+      // Get path from uri
+      RNFetchBlob.fs.stat(res[0].uri).then( stats => {
+        setPath(`${stats.path}`)
+      })
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        // User cancelled selectFile
+      } else {
+        throw err
+      }
+    }
+  }
+
+  const sendCertificate = () => {
+    const commandObj = {
+      command: "install certificate",
+      fileName: fname
+    }
+
+    getConnectionInfo().then( () => {
+      sendMessage(JSON.stringify(commandObj)).then( () => {
+        setTimeout( () => {
+          sendFile(path).then( () => {
+            setTimeout( () => {
+              receiveMessage().then( result => {
+                // handle response
+                setMessage(result.message)
+              })
+            }, 1000)
           })
         }, 1000)
       })
@@ -108,9 +155,25 @@ const App = () => {
             />
           </View>
 
+          <View style={styles.btn}>
+            <Button style={styles.btn}
+              title="Select File"
+              onPress={selectFile}
+            />
+          </View>
+
+          <Text>{`name: ${fname} path: ${path}`}</Text>
+
           {devices.map((device, i) => 
             <Device key={`device#${i}`} device={device} />
           )}
+
+          <View style={styles.btn}>
+            <Button 
+              title="Send Certificate"
+              onPress={sendCertificate}
+            /> 
+          </View>
 
           <View style={styles.btn}>
             <Button 
@@ -137,7 +200,6 @@ const App = () => {
 
 const styles = StyleSheet.create({
   container: {
-    margin: 100,
     padding: 100,
     backgroundColor: '#EEEEEE',
   },
